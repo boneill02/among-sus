@@ -611,11 +611,12 @@ void
 discussion(size_t pid, char *input)
 {
 	char buf[300];
-	intmax_t vote = 0, max_votes = 0, tie = 0, winner = -1;
+	intmax_t vote = 0, max_votes = 0, tie = 0, winner = -1, hasvalidchar = 0;
 	for (size_t i = 0; i < strlen(input); i++) {
-		if(!isprint(input[i])) {
+		if (!isprint(input[i]))
 			input[i] = '\0';
-		}
+		else if (!isspace(input[i]))
+			hasvalidchar = 1;
 	}
 
 	if (input[0] == '/' && input[1] != '/') {
@@ -809,7 +810,7 @@ not_yet:
 			snprintf(buf, sizeof(buf), "(dead) [%s]: %s", players[pid].name, &input[1]);
 			broadcast_ghosts(buf, -1);
 		}
-	} else {
+	} else if (hasvalidchar) {
 		if (state.chats_left <= 0 && alive(players[pid])) {
 			snprintf(buf, sizeof(buf), "No chats left, you can only vote now\n");
 			write(players[pid].fd, buf, strlen(buf));
@@ -1264,13 +1265,18 @@ handle_input(int fd)
 					}
 				}
 			} else {
-				for (size_t i = 0; i < strlen(buf); i++) {
-					if(!isprint(buf[i])) {
+				int hasvalidchar = 0;
+				for (size_t i = 0;  i < strlen(buf); i++) {
+					if (!isprint(buf[i]))
 						buf[i] = '\0';
-					}
+					else if (!isspace(buf[i]))
+						hasvalidchar = 1;
 				}
-				snprintf(buf2, sizeof(buf2), "[%s]: %s", players[pid].name, buf);
-				broadcast(buf2, fd);
+
+				if (hasvalidchar) {
+					snprintf(buf2, sizeof(buf2), "[%s]: %s", players[pid].name, buf);
+					broadcast(buf2, fd);
+				}
 			}
 			break;
 		case PLAYER_STAGE_MAIN:
