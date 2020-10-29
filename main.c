@@ -373,7 +373,7 @@ check_win_condition(void)
 
 		if (players[i].is_impostor == 1
 				&& !alive(players[i])) {
-			broadcast("The crew won", -1);
+			broadcast("The crew won, the impostor died", -1);
 			end_game();
 			return 1;
 		}
@@ -399,7 +399,7 @@ check_win_condition(void)
 	}
 
 	if (tasks == 1) {
-		broadcast("The crew won", -1);
+		broadcast("The crew won, all tasks completed", -1);
 		end_game();
 		return 1;
 	}
