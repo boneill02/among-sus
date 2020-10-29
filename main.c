@@ -1353,6 +1353,12 @@ main(void)
 		exit(EXIT_FAILURE);
 	}
 
+	if (setsockopt(listen6_fd, SOL_SOCKET, SO_REUSEADDR,
+				&i, sizeof(i))) {
+		perror("setsockopt");
+		exit(EXIT_FAILURE);
+	}
+
 	listen_addr.sin_family = AF_INET;
 	listen_addr.sin_addr.s_addr = htonl(INADDR_ANY);
 	listen_addr.sin_port = htons(port);
