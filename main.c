@@ -108,8 +108,8 @@ enum player_task_long {
 const char long_task_descriptions[][2][45] = {
 	{"Route power to defence in electrical", "Accept rerouted power in shields"},
 	{"Route power to attack in electrical", "Accept rerouted power in weapons"},
-	{"Download latest navigation data", "Upload data in admin"},
-	{"Download latest shields data", "Upload data in admin"},
+	{"Download the latest navigation data", "Upload data in admin"},
+	{"Download the latest shields data", "Upload data in admin"},
 	{"Pick up nuclear fuel in storage", "Insert fuel into reactor"},
 	{"Pick up potato in cafeteria", "Plant the potato in o2"},
 	{"Get radio log from communications", "Deliver communications log to admin"},
