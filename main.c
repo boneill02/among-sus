@@ -460,6 +460,7 @@ player_list_tasks(size_t pid)
 {
 	char buf[100];
 	int task_desc;
+	int done = 1;
 
 	for (size_t i = 0; i < TASK_SHORT_COUNT; i++) {
 		for (size_t j = 0; j < NUM_SHORT; j++) {
@@ -469,6 +470,7 @@ player_list_tasks(size_t pid)
 					cm = "*";
 				} else {
 					cm = " ";
+					done = 0;
 				}
 				snprintf(buf, sizeof(buf), " [%s] %s\n", cm,
 					short_task_descriptions[i]);
@@ -486,9 +488,11 @@ player_list_tasks(size_t pid)
 				} else if(players[pid].long_tasks_done[j] == 1) {
 					cm = "-";
 					task_desc = 1;
+					done = 0;
 				} else {
 					cm = " ";
 					task_desc = 0;
+					done = 0;
 				}
 				snprintf(buf, sizeof(buf), " [%s] %s\n", cm,
 					long_task_descriptions[i][task_desc]);
@@ -496,7 +500,11 @@ player_list_tasks(size_t pid)
 			}
 		}
 	}
-	snprintf(buf, sizeof(buf), "# ");
+	if (done) {
+		snprintf(buf, sizeof(buf), "All your tasks are completed!\n# ");
+	} else {
+		snprintf(buf, sizeof(buf), "Complete the tasks by typing the full task name in the correct location\n# ");
+	}
 	write(players[pid].fd, buf, strlen(buf));
 }
 
@@ -952,7 +960,20 @@ adventure(size_t pid, char *input)
 		list_rooms_with_players(pid);
 		return;
 	} else if (strcmp(input, "help") == 0) {
-		snprintf(buf, sizeof(buf), "Commands: help, examine room, go [room], murder crewmate, report, check tasks\n# ");
+
+		snprintf(buf, sizeof(buf), "Commands: help, examine room, go [room], murder crewmate, report, check tasks");
+		write(players[pid].fd, buf, strlen(buf));
+		switch (players[pid].location) {
+			case LOC_CAFETERIA:
+				snprintf(buf, sizeof(buf), "\ncommands in this room: press emergency button\n# ");
+				break;
+			case LOC_SECURITY:
+				snprintf(buf, sizeof(buf), "\ncommands in this room: look at monitor\n# ");
+				break;
+			default:
+				snprintf(buf, sizeof(buf), "\n# ");
+				break;
+		}
 	} else if (strncmp(input, "map", 3) == 0) {
 		for(int l=0;l<19;l++) {
 			write(players[pid].fd, map[l], strlen(map[l]));
