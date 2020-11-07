@@ -15,6 +15,7 @@
 #include <sys/socket.h>
 #include <time.h>
 #include <unistd.h>
+#include <getopt.h>
 
 #define NUM_PLAYERS 10
 #define NUM_SHORT 6
@@ -204,6 +205,14 @@ const char map[] =
 	"| LOWER ENGINE       ELECTRICAL       STORAGE   | COMMS  | SHIELDS /\n"
 	"|                                               |        |        /\n"
 	"|/----------------|--------------|--------------|--------|-------/\n"
+;
+
+const char usage[] =
+	"Usage: among-sus [-p <port>] [-h]\n"
+	"among-sus:\tAmong Us, but it's a text adventure\n"
+	"\n"
+	"-p, \t\tSet port number\n"
+	"-h, \t\tDisplay this message\n"
 ;
 
 enum player_state {
@@ -1346,13 +1355,30 @@ welcome_player(int fd)
 }
 
 int
-main(void)
+main(int argc, char *argv[])
 {
 	// Set default settings
 	state.impostor_cooldown = 1;
 
-	int listen_fd, listen6_fd, new_fd, i;
 	uint16_t port = 1234;
+	char *endptr = NULL;
+
+	int opt;
+	while ((opt = getopt(argc, argv, "hp:")) != -1) {
+		switch (opt) {
+			case 'p':
+				port = strtol(optarg, &endptr, 10);
+				break;
+			case 'h':
+				printf("%s", usage);
+				exit(EXIT_SUCCESS);
+			case '?':
+				printf("%s", usage);
+				exit(EXIT_FAILURE);
+		}
+	}
+
+	int listen_fd, listen6_fd, new_fd, i;
 	socklen_t client_size;
 	struct sockaddr_in listen_addr, client_addr;
 	struct sockaddr_in6 listen6_addr;
