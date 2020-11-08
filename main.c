@@ -658,15 +658,20 @@ discussion(size_t pid, char *input)
 				}
 			}
 
-			if (vote == -1) {
-				printf("[%s] voted to skip\n", players[pid].name);
-			} else {
-				printf("[%s] voted for %jd\n", players[pid].name, vote);
-			}
 			if(vote < -1 || vote > NUM_PLAYERS-1 || players[vote].fd == -1) {
 				snprintf(buf, sizeof(buf), "Invalid vote, no such player\n");
 				write(players[pid].fd, buf, strlen(buf));
 				return;
+			}
+			if (!alive(players[vote])) {
+				snprintf(buf, sizeof(buf), "Invalid vote, that person is dead\n");
+				write(players[pid].fd, buf, strlen(buf));
+				return;
+			}
+			if (vote == -1) {
+				printf("[%s] voted to skip\n", players[pid].name);
+			} else {
+				printf("[%s] voted for %jd\n", players[pid].name, vote);
 			}
 			players[pid].voted = 1;
 			if (vote == -1) {
