@@ -39,6 +39,7 @@ enum player_stage {
 	PLAYER_STAGE_LOBBY,
 	PLAYER_STAGE_MAIN,
 	PLAYER_STAGE_DISCUSS,
+	PLAYER_STAGE_WAITING,
 };
 
 enum player_task_short {
@@ -287,7 +288,8 @@ broadcast(char* message, int notfd)
 
 	for (pid = 0; pid < NUM_PLAYERS; pid++) {
 		if (players[pid].fd == -1 || players[pid].fd == notfd
-				|| players[pid].stage == PLAYER_STAGE_NAME)
+				|| players[pid].stage == PLAYER_STAGE_NAME
+				|| players[pid].stage == PLAYER_STAGE_WAITING)
 			continue;
 
 		write(players[pid].fd, buf, strlen(buf));
@@ -308,6 +310,7 @@ broadcast_ghosts(char* message, int notfd)
 		if (players[pid].fd == -1
 				|| players[pid].fd == notfd
 				|| players[pid].stage == PLAYER_STAGE_NAME
+				|| players[pid].stage == PLAYER_STAGE_WAITING
 				|| alive(players[pid]))
 			continue;
 
@@ -330,7 +333,8 @@ player_move(size_t pid, enum player_location location)
 	for (size_t i = 0; i < NUM_PLAYERS; i++) {
 		if (players[i].location != players[pid].location || i == pid
 				|| players[i].fd == -1
-				|| players[i].state != PLAYER_STATE_DEAD)
+				|| players[i].state != PLAYER_STATE_DEAD
+				|| players[i].stage != PLAYER_STAGE_WAITING)
 			continue;
 
 		snprintf(buf, sizeof(buf), "you enter the room and see the body of [%s] laying on the floor\n", players[i].name);
@@ -359,6 +363,8 @@ player_move(size_t pid, enum player_location location)
 void
 end_game()
 {
+	char buf[100];
+
 	broadcast("------------------------", -1);
 	broadcast("The game has ended, returning to lobby", -1);
 	state.stage = STAGE_LOBBY;
@@ -366,6 +372,14 @@ end_game()
 	for(int i=0; i<NUM_PLAYERS;i++) {
 		if (players[i].fd == -1)
 			continue;
+
+		if (players[i].stage == PLAYER_STAGE_WAITING) {
+			snprintf(buf, sizeof(buf), "Game ended, sending you to lobby.\n\a");
+			write(players[i].fd, buf, strlen(buf));
+			snprintf(buf, sizeof(buf), "[%s] has joined the lobby.", players[i].name);
+			broadcast(buf, players[i].fd);
+		}
+
 		players[i].stage = PLAYER_STAGE_LOBBY;
 	}
 }
@@ -388,10 +402,12 @@ check_win_condition(void)
 		}
 
 		if (players[i].fd != -1 && alive(players[i])
-				&& players[i].is_impostor == 0)
+				&& players[i].is_impostor == 0
+				&& players[i].stage != PLAYER_STAGE_WAITING)
 			nalive++;
 
-		if (players[i].fd != -1 && !players[i].is_impostor) {
+		if (players[i].fd != -1 && !players[i].is_impostor
+				&& players[i].stage != PLAYER_STAGE_WAITING) {
 			for (size_t j = 0; j < NUM_SHORT; j++) {
 				if (!players[i].short_tasks_done[j]) {
 					tasks = 0;
@@ -517,14 +533,15 @@ player_list_tasks(size_t pid)
 	write(players[pid].fd, buf, strlen(buf));
 }
 
-void
+bool
 player_kill(size_t pid, size_t tid)
 {
 	char buf[100];
 
 	if(players[pid].location != players[tid].location
-			|| players[tid].is_impostor)
-		return;
+			|| players[tid].is_impostor
+			|| players[tid].stage != PLAYER_STAGE_MAIN)
+		return false;
 
 	// so sad
 	players[tid].state = PLAYER_STATE_DEAD;
@@ -540,7 +557,8 @@ player_kill(size_t pid, size_t tid)
 	// notify bystanders
 	for (size_t i = 0; i < NUM_PLAYERS; i++) {
 		if (i == pid || players[i].fd == -1 || !alive(players[i])
-				|| players[i].location != players[pid].location)
+				|| players[i].location != players[pid].location
+				|| players[i].stage != PLAYER_STAGE_MAIN)
 			continue;
 
 		snprintf(buf, sizeof(buf), "someone killed [%s] while you were in the room\n",
@@ -549,6 +567,8 @@ player_kill(size_t pid, size_t tid)
 	}
 
 	check_win_condition();
+
+	return true;
 }
 
 void
@@ -561,7 +581,8 @@ start_discussion(size_t pid, size_t bid)
 
 	// switch everyone to the discussion state and mark bodies found
 	for(int i=0; i<NUM_PLAYERS;i++) {
-		if (players[i].fd == -1)
+		if (players[i].fd == -1
+				|| players[i].stage != PLAYER_STAGE_MAIN)
 			continue;
 
 		players[i].stage = PLAYER_STAGE_DISCUSS;
@@ -583,7 +604,8 @@ start_discussion(size_t pid, size_t bid)
 	// List the state of the players
 	broadcast("Players:", -1);
 	for(int i=0; i<NUM_PLAYERS;i++) {
-		if (players[i].fd == -1)
+		if (players[i].fd == -1
+				|| players[i].stage != PLAYER_STAGE_DISCUSS)
 			continue;
 		switch (players[i].state) {
 		case PLAYER_STATE_ALIVE:
@@ -615,7 +637,8 @@ back_to_playing()
 	state.stage = STAGE_PLAYING;
 	// switch everyone to the playing state
 	for(int i=0; i<NUM_PLAYERS;i++) {
-		if (players[i].fd == -1)
+		if (players[i].fd == -1
+				|| players[i].stage != PLAYER_STAGE_DISCUSS)
 			continue;
 
 		players[i].stage = PLAYER_STAGE_MAIN;
@@ -658,7 +681,8 @@ discussion(size_t pid, char *input)
 				}
 			}
 
-			if(vote < -1 || vote > NUM_PLAYERS-1 || players[vote].fd == -1) {
+			if(vote < -1 || vote > NUM_PLAYERS-1 || players[vote].fd == -1
+					|| players[vote].stage != PLAYER_STAGE_DISCUSS) {
 				snprintf(buf, sizeof(buf), "Invalid vote, no such player\n");
 				write(players[pid].fd, buf, strlen(buf));
 				return;
@@ -683,7 +707,8 @@ check_votes:
 			// Check if voting is complete
 			for (size_t i = 0; i < NUM_PLAYERS; i++) {
 				if(players[i].fd != -1 && players[i].voted == 0
-						&& alive(players[i])) {
+						&& alive(players[i])
+						&& players[i].stage == PLAYER_STAGE_DISCUSS) {
 					printf("No vote from [%s] yet\n", players[i].name);
 					goto not_yet;
 				}
@@ -694,7 +719,7 @@ check_votes:
 			// Count votes
 			max_votes = state.skips;
 			for (size_t i = 0; i < NUM_PLAYERS; i++) {
-				if(players[i].fd == -1)
+				if(players[i].fd == -1 || players[i].stage != PLAYER_STAGE_DISCUSS)
 					continue;
 
 				if(players[i].votes > max_votes){
@@ -752,7 +777,8 @@ not_yet:
 			write(players[pid].fd, buf, strlen(buf));
 		} else if (strncmp(input, "/list", 6) == 0) {
 			for(int i=0; i<NUM_PLAYERS;i++) {
-				if (players[i].fd == -1)
+				if (players[i].fd == -1
+						|| players[i].stage != PLAYER_STAGE_DISCUSS)
 					continue;
 				if (alive(players[i]) && players[i].voted) {
 					snprintf(buf, sizeof(buf), "* %d [%s] (voted) \n", i, players[i].name);
@@ -876,7 +902,8 @@ adventure(size_t pid, char *input)
 		write(players[pid].fd, buf, strlen(buf));
 		for (size_t i = 0; i < NUM_PLAYERS; i++) {
 			if (players[i].location != players[pid].location
-					|| players[i].fd == -1 || i == pid)
+					|| players[i].fd == -1 || i == pid
+					|| players[i].stage != PLAYER_STAGE_MAIN)
 				continue;
 
 			switch (players[i].state) {
@@ -932,16 +959,18 @@ adventure(size_t pid, char *input)
 		} else if (players[pid].has_cooldown) {
 			snprintf(buf, sizeof(buf), "you can't kill that quickly\n# ");
 		} else {
+			snprintf(buf, sizeof(buf), "no one to kill here\n# ");
 			for (size_t i = 0; i < NUM_PLAYERS; i++) {
 				if (players[i].location != players[pid].location
 						|| i == pid || players[i].fd == -1
-						|| !alive(players[i]))
+						|| !alive(players[i])
+						|| players[i].stage != PLAYER_STAGE_MAIN)
 					continue;
 
 				// TODO: kill more randomly
-				player_kill(pid, i);
-				snprintf(buf, sizeof(buf), "you draw your weapon and brutally murder %s\n# ",
-					players[i].name);
+				if (player_kill(pid, i))
+					snprintf(buf, sizeof(buf), "you draw your weapon and brutally murder %s\n# ",
+						players[i].name);
 				break;
 			}
 		}
@@ -1248,9 +1277,16 @@ handle_input(int fd)
 			}
 			strcpy(players[pid].name, buf);
 
-			snprintf(buf, sizeof(buf), "[%s] has joined the lobby", players[pid].name);
-			broadcast(buf, fd);
-			players[pid].stage = PLAYER_STAGE_LOBBY;
+			if (state.stage == STAGE_LOBBY) {
+				snprintf(buf, sizeof(buf), "[%s] has joined the lobby", players[pid].name);
+				broadcast(buf, fd);
+				players[pid].stage = PLAYER_STAGE_LOBBY;
+			} else
+				players[pid].stage = PLAYER_STAGE_WAITING;
+
+			break;
+
+		case PLAYER_STAGE_WAITING:
 			break;
 
 		case PLAYER_STAGE_LOBBY:
@@ -1330,17 +1366,16 @@ welcome_player(int fd)
 {
 	char buf[100];
 
-	if(state.stage != STAGE_LOBBY) {
-		snprintf(buf, sizeof(buf), "There is a game in progress, try again later\n");
-		write(fd, buf, strlen(buf));
-		close(fd);
-		return -1;
-	}
-
 	for (size_t i = 0; i < sizeof(players); i++) {
 		if (players[i].fd > 0) {
 			continue;
 		}
+
+		if(state.stage != STAGE_LOBBY) {
+			snprintf(buf, sizeof(buf), "There is a game in progress, waiting for the match to finish...\n");
+			write(fd, buf, strlen(buf));
+		}
+
 		players[i].fd = fd;
 		players[i].is_admin = 0;
 		if (!state.has_admin) {
