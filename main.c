@@ -1385,8 +1385,8 @@ main(int argc, char *argv[])
 
 	int listen_fd, listen6_fd, new_fd, i;
 	socklen_t client_size;
-	struct sockaddr_in listen_addr, client_addr;
-	struct sockaddr_in6 listen6_addr;
+	struct sockaddr_in listen_addr = {0}, client_addr = {0};
+	struct sockaddr_in6 listen6_addr = {0};
 
 	for (i = 0; i < NUM_PLAYERS; i++) {
 		players[i].fd = -1;
