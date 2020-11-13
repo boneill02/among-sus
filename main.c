@@ -1138,7 +1138,7 @@ retry2:
 			continue;
 
 		if(players[i].is_impostor) {
-			snprintf(buf, sizeof(buf), "You are in a spaceship, the other %d crew members think you're on of them\n# ", assigned - 1);
+			snprintf(buf, sizeof(buf), "You are in a spaceship, the other %d crew members think you're one of them\n# ", assigned - 1);
 			write(players[i].fd, buf, strlen(buf));
 		} else {
 			snprintf(buf, sizeof(buf), "You are in a spaceship, one of the crew of %d people\n", assigned);
