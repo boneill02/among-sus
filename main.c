@@ -1371,6 +1371,9 @@ welcome_player(int fd)
 			continue;
 		}
 
+		snprintf(buf, sizeof(buf), "among-sus server: version %s\n", VERSION);
+		write(fd, buf, strlen(buf));
+
 		if(state.stage != STAGE_LOBBY) {
 			snprintf(buf, sizeof(buf), "There is a game in progress, waiting for the match to finish...\n");
 			write(fd, buf, strlen(buf));
