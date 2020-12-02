@@ -681,8 +681,9 @@ discussion(size_t pid, char *input)
 				}
 			}
 
-			if(vote < -1 || vote > NUM_PLAYERS-1 || players[vote].fd == -1
-					|| players[vote].stage != PLAYER_STAGE_DISCUSS) {
+			if (vote != -1 && (vote < -1 || vote > NUM_PLAYERS-1
+					|| players[vote].fd == -1
+					|| players[vote].stage != PLAYER_STAGE_DISCUSS)) {
 				snprintf(buf, sizeof(buf), "Invalid vote, no such player\n");
 				write(players[pid].fd, buf, strlen(buf));
 				return;
