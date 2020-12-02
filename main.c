@@ -430,7 +430,7 @@ check_win_condition(void)
 	}
 
 	if (nalive == 1) {
-		broadcast("The impostor is alone with the last crewmate and murders him", -1);
+		broadcast("The impostor is alone with the last crewmate and murders them", -1);
 		snprintf(buf, sizeof(buf), "The impostor was [%s] all along...", players[iid].name);
 		broadcast(buf, -1);
 		end_game();
