@@ -17,6 +17,10 @@
 #include <unistd.h>
 #include <getopt.h>
 
+#ifndef VERSION
+#define VERSION "unknown"
+#endif
+
 #define NUM_PLAYERS 10
 #define NUM_SHORT 6
 #define NUM_LONG 2
