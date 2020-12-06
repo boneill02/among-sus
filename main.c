@@ -1414,8 +1414,15 @@ main(int argc, char *argv[])
 	int opt;
 	while ((opt = getopt(argc, argv, "hp:")) != -1) {
 		switch (opt) {
-			case 'p':
-				port = strtol(optarg, &endptr, 10);
+			case 'p':;
+				errno = 0;
+				long _port = strtol(optarg, &endptr, 10);
+				if (*endptr != '\0' || errno != 0 ||
+					_port <= 0 || _port >= 65536) {
+					fprintf(stderr, "Invalid port: %s\n", optarg);
+					exit(EXIT_FAILURE);
+				}
+				port = (uint16_t) _port;
 				break;
 			case 'h':
 				printf("%s", usage);
