@@ -1420,7 +1420,7 @@ main(int argc, char *argv[])
 			case 'h':
 				printf("%s", usage);
 				exit(EXIT_SUCCESS);
-			case '?':
+			default:
 				printf("%s", usage);
 				exit(EXIT_FAILURE);
 		}
