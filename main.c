@@ -1443,19 +1443,25 @@ main(int argc, char *argv[])
 	}
 	srand((unsigned)time(NULL));
 
-	listen_fd = socket(AF_INET, SOCK_STREAM, 0);
-	listen6_fd = socket(AF_INET6, SOCK_STREAM, 0);
+	if ((listen_fd = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
+		perror("IPv4 socket");
+		exit(EXIT_FAILURE);
+	}
+	if ((listen6_fd = socket(AF_INET6, SOCK_STREAM, 0)) == -1) {
+		perror("IPv6 socket");
+		exit(EXIT_FAILURE);
+	}
 
 	i = 1;
 	if (setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR,
 				&i, sizeof(i))) {
-		perror("setsockopt");
+		perror("IPv4 setsockopt");
 		exit(EXIT_FAILURE);
 	}
 
 	if (setsockopt(listen6_fd, SOL_SOCKET, SO_REUSEADDR,
 				&i, sizeof(i))) {
-		perror("setsockopt");
+		perror("IPv6 setsockopt");
 		exit(EXIT_FAILURE);
 	}
 
