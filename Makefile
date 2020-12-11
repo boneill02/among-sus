@@ -1,11 +1,9 @@
 .POSIX:
-
-CFLAGS = $$(git rev-parse HEAD &>/dev/null && echo -DVERSION="\"$$(git rev-parse --short HEAD)\"")
-
-all: among-sus
-
-among-sus: main.o
-	$(CC) $(LDFLAGS) -o $@ main.o
+all:
+	$(CC) -o among-sus $(CFLAGS) \
+		$$(git rev-parse --short HEAD &>/dev/null && \
+		printf -- '-DVERSION="%s"' "$$(git rev-parse --short HEAD)" || \
+		printf -- '-DVERSION="unknown"') main.c $(LDFLAGS)
 
 clean:
-	rm -f among-sus main.o
+	rm -f among-sus
