@@ -1223,6 +1223,7 @@ handle_input(int fd)
 		players[pid].fd = -1;
 		if (players[pid].stage != PLAYER_STAGE_NAME) {
 			snprintf(buf, sizeof(buf), "Player [%s] disconnected.", players[pid].name);
+			players[pid].name[0] = '\0';
 			printf("Sending disconnection message\n");
 			broadcast(buf, -1);
 		}
@@ -1239,6 +1240,7 @@ handle_input(int fd)
 		players[pid].fd = -1;
 		if (players[pid].stage != PLAYER_STAGE_NAME) {
 			snprintf(buf, sizeof(buf), "Player [%s] left the game.", players[pid].name);
+			players[pid].name[0] = '\0';
 			printf("Sending parting message\n");
 			broadcast(buf, -1);
 		}
@@ -1272,6 +1274,13 @@ handle_input(int fd)
 				snprintf(buf, sizeof(buf), "Too long, pick another name\n> ");
 				write(fd, buf, strlen(buf));
 				return 0;
+			}
+			for (size_t i = 0; i < NUM_PLAYERS; i++) {
+				if (strcmp(players[i].name, buf) == 0) {
+					snprintf(buf, sizeof(buf), "Taken, pick another name\n> ");
+					write(fd, buf, strlen(buf));
+					return 0;
+				}
 			}
 			for (size_t i = 0; i < strlen(buf); i++) {
 				if(!isprint(buf[i])) {
