@@ -76,4 +76,4 @@ The crew can win by having everyone complete all the tasks or by voting out the 
 
 # Development
 
-There's #among-sus on freenode. Patches go to https://lists.sr.ht/~martijnbraam/public-inbox
+There's #among-sus on libera.chat. Patches go to https://lists.sr.ht/~martijnbraam/public-inbox
